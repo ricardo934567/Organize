@@ -22,6 +22,7 @@ public class MetaCategoria {
     private Long controle;
 
     @OneToOne
+    @JoinColumn(name = "categoria_id", nullable = false)
     private Categoria categoria;
 
 

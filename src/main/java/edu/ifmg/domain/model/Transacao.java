@@ -1,11 +1,12 @@
 package edu.ifmg.domain.model;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import org.hibernate.annotations.CreationTimestamp;
+        import lombok.Data;
+        import lombok.EqualsAndHashCode;
+        import org.hibernate.annotations.CreationTimestamp;
 
-import javax.persistence.*;
-import java.time.LocalDateTime;
+        import javax.persistence.*;
+
+        import java.time.LocalDateTime;
 
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -18,10 +19,32 @@ public class Transacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "valor",nullable = false)
     private Long valor;
+
+    @Column(name = "parcela",nullable = false)
+    private Long parcela;
 
     @CreationTimestamp
     @Column(nullable = false, columnDefinition = "datetime")
-    private LocalDateTime data;
+    private LocalDateTime dataTransacao;
+
+    @CreationTimestamp
+    @Column(nullable = false, columnDefinition = "datetime")
+    private LocalDateTime dataPagamento;
+
+    @CreationTimestamp
+    @Column(nullable = false, columnDefinition = "datetime")
+    private LocalDateTime dataVencimento;
+
+    @ManyToOne
+    @JoinColumn(name = "fatura_id", nullable = false)
+    private Fatura fatura;
+
+    @PrePersist
+    private void prePersist() {
+        LocalDateTime currentDate = LocalDateTime.now();
+        dataPagamento = (currentDate.plusDays(30));
+        dataVencimento = (currentDate.plusDays(45));
+    }
 }

@@ -3,6 +3,7 @@ package edu.ifmg.domain.model;
         import lombok.Data;
         import lombok.EqualsAndHashCode;
         import org.hibernate.annotations.CreationTimestamp;
+        import org.hibernate.annotations.UpdateTimestamp;
 
         import javax.persistence.*;
 
@@ -29,8 +30,8 @@ public class Transacao {
     @Column(nullable = false, columnDefinition = "datetime")
     private LocalDateTime dataTransacao;
 
-    @CreationTimestamp
-    @Column(nullable = false, columnDefinition = "datetime")
+    @UpdateTimestamp
+    @Column(nullable = true, columnDefinition = "datetime")
     private LocalDateTime dataPagamento;
 
     @CreationTimestamp

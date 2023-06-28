@@ -39,7 +39,13 @@ public class TransacaoController {
         @ResponseStatus(HttpStatus.CREATED)
         @PostMapping
         public Transacao salvar(@RequestBody Transacao transacao) {
+                if (transacao.getId() == null) {
+                        // O campo ID é nulo, podemos ignorá-lo
+                        transacao.setId((long) -1);
+
+                }
                 return transacaoRepository.save(transacao);
+
         }
 
 

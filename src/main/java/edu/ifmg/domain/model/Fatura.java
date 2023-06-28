@@ -4,6 +4,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -24,6 +26,10 @@ public class Fatura {
 
     @Column(name = "faturado", nullable = false)
     private Boolean faturado;
+
+
+    @OneToMany(mappedBy = "fatura")
+    private List<Transacao> transacoes = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "categoria_id", nullable = false)

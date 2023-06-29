@@ -91,8 +91,9 @@ public class FaturaController {
             Long vrTotal = (Long) result.get("vrTotal");
             Long limite = (Long) result.get("limite");
 
-            valorRestante = limite - vrTotal - novoValor;
-        } catch (EmptyResultDataAccessException e) {
+            valorRestante = limite - (vrTotal + novoValor);
+
+        } catch (EmptyResultDataAccessException empty_valor) {
             String sql2 = "SELECT limite FROM meta_categoria  ";
 
             // Trate o caso de nenhum resultado encontrado, se necessário
@@ -100,11 +101,16 @@ public class FaturaController {
                     id_categoria
             };
 
+            try {
             Map<String, Object> result = jdbcTemplate.queryForMap(sql2, params2);
 
             Long limite = (Long) result.get("limite");
 
             valorRestante = limite - novoValor;
+
+            } catch (EmptyResultDataAccessException empty_limite) {
+                // Trate o caso de nenhum resultado encontrado, se necessário
+            }
         }
 
         return valorRestante > 0;

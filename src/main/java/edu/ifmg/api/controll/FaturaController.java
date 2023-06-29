@@ -3,7 +3,6 @@ package edu.ifmg.api.controll;
 import edu.ifmg.domain.model.Fatura;
 import edu.ifmg.domain.model.Transacao;
 import edu.ifmg.domain.repository.FaturaRepository;
-import edu.ifmg.domain.repository.TransacaoRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -12,9 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
-import java.sql.*;
 
-import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,9 +55,9 @@ public class FaturaController {
     private JdbcTemplate jdbcTemplate;
 
     private Boolean verificarLimite(Long id_categoria, Double novoValor) {
-        Double valorRestante = 0.00;
+        Long valorRestante = (long) 0.00;
 
-        String sql1 =
+        String sql =
         "SELECT sum(vrTotal) AS vrTotal, limite                             "+
         "FROM (                                                             "+
         "  SELECT sum(f.valor_total) AS vrTotal, c.limite                   "+
@@ -73,44 +70,27 @@ public class FaturaController {
         "  FROM fatura f                                                    "+
         "  INNER JOIN meta_categoria c ON c.categoria_id = f.categoria_id   "+
         "  INNER JOIN transacao t ON t.fatura_id = f.fatura_id              "+
-        "  WHERE f.faturado = False AND data_pagamento <> null AND          "+
+        "  WHERE f.faturado = False AND data_pagamento <> null AND          " +
         "        f.categoria_id = ?                                         "+
         "  GROUP BY limite                                                  "+
         ") v                                                                "+
         "GROUP BY limite                                                    ";
 
 
-                Object[] params1 = {
+                Object[] params = {
                 id_categoria,
                 id_categoria
         };
 
         try {
-            Map<String, Object> result = jdbcTemplate.queryForMap(sql1, params1);
+            Map<String, Object> result = jdbcTemplate.queryForMap(sql, params);
 
-            Long vrTotal = (Long) result.get("vrTotal");
+            Long vrTot = (Long) result.get("vrTotal");
             Long limite = (Long) result.get("limite");
 
-            valorRestante = limite - (vrTotal + novoValor);
-
-        } catch (EmptyResultDataAccessException empty_valor) {
-            String sql2 = "SELECT limite FROM meta_categoria  ";
-
+            valorRestante = (long) (vrTot - limite - novoValor);
+        } catch (EmptyResultDataAccessException e) {
             // Trate o caso de nenhum resultado encontrado, se necessário
-            Object[] params2 = {
-                    id_categoria
-            };
-
-            try {
-            Map<String, Object> result = jdbcTemplate.queryForMap(sql2, params2);
-
-            Long limite = (Long) result.get("limite");
-
-            valorRestante = limite - novoValor;
-
-            } catch (EmptyResultDataAccessException empty_limite) {
-                // Trate o caso de nenhum resultado encontrado, se necessário
-            }
         }
 
         return valorRestante > 0;

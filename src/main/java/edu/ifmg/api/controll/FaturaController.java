@@ -7,6 +7,7 @@ import edu.ifmg.domain.repository.TransacaoRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -59,7 +60,7 @@ public class FaturaController {
     private Boolean verificarLimite(Long id_categoria, Double novoValor) {
         Double valorRestante = 0.00;
 
-        String sql =
+        String sql1 =
         "SELECT sum(vrTotal) AS vrTotal, limite                             "+
         "FROM (                                                             "+
         "  SELECT sum(f.valor_total) AS vrTotal, c.limite                   "+
@@ -72,24 +73,39 @@ public class FaturaController {
         "  FROM fatura f                                                    "+
         "  INNER JOIN meta_categoria c ON c.categoria_id = f.categoria_id   "+
         "  INNER JOIN transacao t ON t.fatura_id = f.fatura_id              "+
-        "  WHERE f.faturado = False AND data_pagamento <> null AND          " +
+        "  WHERE f.faturado = False AND data_pagamento <> null AND          "+
         "        f.categoria_id = ?                                         "+
         "  GROUP BY limite                                                  "+
         ") v                                                                "+
         "GROUP BY limite                                                    ";
 
 
-                Object[] params = {
+                Object[] params1 = {
                 id_categoria,
                 id_categoria
         };
 
-        Map<String, Object> result = jdbcTemplate.queryForMap(sql, params);
+        try {
+            Map<String, Object> result = jdbcTemplate.queryForMap(sql1, params1);
 
-        Double vrTotal = (Double) result.get("vrTotal");
-        Double limite = (Double) result.get("limite");
+            Long vrTotal = (Long) result.get("vrTotal");
+            Long limite = (Long) result.get("limite");
 
-        valorRestante = vrTotal - limite - novoValor;
+            valorRestante = limite - vrTotal - novoValor;
+        } catch (EmptyResultDataAccessException e) {
+            String sql2 = "SELECT limite FROM meta_categoria  ";
+
+            // Trate o caso de nenhum resultado encontrado, se necessário
+            Object[] params2 = {
+                    id_categoria
+            };
+
+            Map<String, Object> result = jdbcTemplate.queryForMap(sql2, params2);
+
+            Long limite = (Long) result.get("limite");
+
+            valorRestante = limite - novoValor;
+        }
 
         return valorRestante > 0;
     }

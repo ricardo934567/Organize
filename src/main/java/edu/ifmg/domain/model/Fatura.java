@@ -1,5 +1,6 @@
 package edu.ifmg.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -27,7 +28,7 @@ public class Fatura {
     @Column(name = "faturado", nullable = false)
     private Boolean faturado;
 
-
+    @JsonIgnore
     @OneToMany(mappedBy = "fatura")
     private List<Transacao> transacoes = new ArrayList<>();
 

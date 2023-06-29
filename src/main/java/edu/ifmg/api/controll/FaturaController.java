@@ -62,20 +62,23 @@ public class FaturaController {
         String sql =
         "SELECT sum(vrTotal) AS vrTotal, limite                             "+
         "FROM (                                                             "+
-        "  SELECT sum(f.valorTotal) AS vrTotal, c.limite                    "+
+        "  SELECT sum(f.valor_Total) AS vrTotal, c.limite                   "+
         "  FROM fatura f                                                    "+
-        "  INNER JOIN metacategoria c ON c.categoria_id = f.categoria_id    "+
+        "  INNER JOIN meta_categoria c ON c.categoria_id = f.categoria_id   "+
         "  WHERE f.faturado = True AND f.categoria_id = ?                   "+
+        "  GROUP BY limite                                                  "+
         "  UNION                                                            "+
         "  SELECT sum(t.valor) AS vrTotal, c.limite                         "+
         "  FROM fatura f                                                    "+
-        "  INNER JOIN metacategoria c ON c.categoria_id = f.categoria_id    "+
+        "  INNER JOIN meta_categoria c ON c.categoria_id = f.categoria_id   "+
         "  INNER JOIN transacao t ON t.fatura_id = f.fatura_id              "+
-        "  WHERE faturado = False AND categoria_id = ?                      "+
+        "  WHERE f.faturado = False AND f.categoria_id = ?                  "+
+        "  GROUP BY limite                                                  "+
         ") v                                                                ";
+        "GROUP BY limite                                                    "+
 
 
-        Object[] params = {
+                Object[] params = {
                 id_categoria,
                 id_categoria
         };

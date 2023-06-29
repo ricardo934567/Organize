@@ -17,6 +17,7 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -55,41 +56,80 @@ public class FaturaController {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private Boolean verificarLimite(Long id_categoria, Double novoValor) {
+        Double valorRestante = 0.00;
+
+        String sql =
+        "SELECT sum(vrTotal) AS vrTotal, limite                             "+
+        "FROM (                                                             "+
+        "  SELECT sum(f.valorTotal) AS vrTotal, c.limite                    "+
+        "  FROM fatura f                                                    "+
+        "  INNER JOIN metacategoria c ON c.categoria_id = f.categoria_id    "+
+        "  WHERE f.faturado = True AND f.categoria_id = ?                   "+
+        "  UNION                                                            "+
+        "  SELECT sum(t.valor) AS vrTotal, c.limite                         "+
+        "  FROM fatura f                                                    "+
+        "  INNER JOIN metacategoria c ON c.categoria_id = f.categoria_id    "+
+        "  INNER JOIN transacao t ON t.fatura_id = f.fatura_id              "+
+        "  WHERE faturado = False AND categoria_id = ?                      "+
+        ") v                                                                ";
+
+
+        Object[] params = {
+                id_categoria,
+                id_categoria
+        };
+
+        Map<String, Object> result = jdbcTemplate.queryForMap(sql, params);
+
+        Double vrTotal = (Double) result.get("vrTotal");
+        Double limite = (Double) result.get("limite");
+
+        valorRestante = vrTotal - limite - novoValor;
+
+        return valorRestante > 0;
+    }
+
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/insert")
     public Fatura salvarTeste(@RequestBody Fatura fatura) {
 
+        Long idCategoria = fatura.getCategoria().getId();
+        Double vrTotal = fatura.getValorTotal();
 
-        // Salva a fatura
-        Fatura faturaSalva = faturaRepository.save(fatura);
+        if (verificarLimite(idCategoria, vrTotal).equals(true)) {
+            // Salva a fatura
+            Fatura faturaSalva = faturaRepository.save(fatura);
 
-        // Gera as transações
-        List<Transacao> transacoes = new ArrayList<>();
-        for (int i = 1; i <= fatura.getParcelas(); i++) {
-            Transacao transacao = new Transacao();
-            transacao.setValor((long) (fatura.getValorTotal() / fatura.getParcelas()));
-            transacao.setParcela((long) i);
-            transacao.setFatura(faturaSalva);
-            transacoes.add(transacao);
-            System.out.println("quero isso: " + transacao);
+            // Gera as transações
+            List<Transacao> transacoes = new ArrayList<>();
+            for (int i = 1; i <= fatura.getParcelas(); i++) {
+                Transacao transacao = new Transacao();
+                transacao.setValor((long) (fatura.getValorTotal() / fatura.getParcelas()));
+                transacao.setParcela((long) i);
+                transacao.setFatura(faturaSalva);
+                transacoes.add(transacao);
+                System.out.println("quero isso: " + transacao);
+            }
+
+            // Salva as transações no banco de dados usando instruções SQL
+            for (Transacao transacao : transacoes) {
+                String sql = "INSERT INTO transacao (data_pagamento, data_transacao, data_vencimento, parcela, valor, fatura_id) VALUES (?, ?, ?, ?, ?, ?)";
+                Object[] params = {
+                        null,
+                        LocalDateTime.now(),
+                        LocalDateTime.now().plusDays(30),
+                        transacao.getParcela(),
+                        transacao.getValor(),
+                        transacao.getFatura().getId()
+                };
+                jdbcTemplate.update(sql, params);
+            }
+
+            return faturaSalva;
+        } else {
+            return null;
         }
-
-        // Salva as transações no banco de dados usando instruções SQL
-        for (Transacao transacao : transacoes) {
-            String sql = "INSERT INTO transacao (data_pagamento, data_transacao, data_vencimento, parcela, valor, fatura_id) VALUES (?, ?, ?, ?, ?, ?)";
-            Object[] params = {
-                    null,
-                    LocalDateTime.now(),
-                    LocalDateTime.now().plusDays(30),
-                    transacao.getParcela(),
-                    transacao.getValor(),
-                    transacao.getFatura().getId()
-            };
-            jdbcTemplate.update(sql, params);
-        }
-
-        return faturaSalva;
-
     }
 
     @DeleteMapping("/{fatura_Id}")
@@ -117,35 +157,5 @@ public class FaturaController {
             return ResponseEntity.ok(faturaSalva);
         }
         return ResponseEntity.notFound().build();
-    }
-
-    public Double verificarLimite(int id_categoria) {
-        Double valorTotal = 0.00;
-
-        String sql = "SELECT sum(vrTotal) AS vrTotal                        "+
-                     "FROM (                                                "+
-                     "  SELECT sum(f.valorTotal) AS vrTotal                 "+
-                     "  FROM fatura f                                       "+
-                     "  WHERE f.faturado = True AND f.categoria_id = ?      "+
-                     "  UNION                                               "+
-                     "  SELECT sum(t.valor) AS vrTotal                      "+
-                     "  FROM fatura f                                       "+
-                     "  INNER JOIN transacao t ON t.fatura_id = f.fatura_id "+
-                     "  WHERE faturado = False AND categoria_id = ?         "+
-                     ")                                                     ";
-        //try {
-            //PreparedStatement ps = conexao.prepareStatement(sql);
-            //ps.setInt(1, id_categoria);
-            //ps.setInt(2, id_categoria);
-            //ResultSet rs = ps.executeQuery();
-            //valorTotal = rs.getDouble("vrTotal");
-            //rs.close();
-            //ps.close();
-
-            return valorTotal;
-
-        //} catch (SQLException e) {
-        //    System.err.println("Erro ao verificar o valor gasto pela categoria: " + e.getMessage());
-        //}
     }
 }

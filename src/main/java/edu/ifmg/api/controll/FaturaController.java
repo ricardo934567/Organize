@@ -3,17 +3,15 @@ package edu.ifmg.api.controll;
 import edu.ifmg.domain.model.Fatura;
 import edu.ifmg.domain.model.Transacao;
 import edu.ifmg.domain.repository.FaturaRepository;
-import edu.ifmg.domain.repository.TransacaoRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
-import java.sql.*;
 
-import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +55,7 @@ public class FaturaController {
     private JdbcTemplate jdbcTemplate;
 
     private Boolean verificarLimite(Long id_categoria, Double novoValor) {
-        Double valorRestante = 0.00;
+        Long valorRestante = (long) 0.00;
 
         String sql =
         "SELECT sum(vrTotal) AS vrTotal, limite                             "+
@@ -84,12 +82,16 @@ public class FaturaController {
                 id_categoria
         };
 
-        Map<String, Object> result = jdbcTemplate.queryForMap(sql, params);
+        try {
+            Map<String, Object> result = jdbcTemplate.queryForMap(sql, params);
 
-        Double vrTotal = (Double) result.get("vrTotal");
-        Double limite = (Double) result.get("limite");
+            Long vrTot = (Long) result.get("vrTotal");
+            Long limite = (Long) result.get("limite");
 
-        valorRestante = vrTotal - limite - novoValor;
+            valorRestante = (long) (vrTot - limite - novoValor);
+        } catch (EmptyResultDataAccessException e) {
+            // Trate o caso de nenhum resultado encontrado, se necessário
+        }
 
         return valorRestante > 0;
     }

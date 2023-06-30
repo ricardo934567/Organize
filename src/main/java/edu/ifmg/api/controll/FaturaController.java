@@ -130,7 +130,7 @@ public class FaturaController {
 
             // Salva as transações no banco de dados usando instruções SQL
             for (Transacao transacao : transacoes) {
-                String sql = "INSERT INTO transacao (data_pagamento, data_transacao, data_vencimento, parcela, valor, fatura_id) VALUES (?, ?, ?, ?, ?, ?)";
+                String sql = "INSERT INTO transacao (data_transacao, data_vencimento, parcela, valor, fatura_id) VALUES ( ?, ?, ?, ?, ?)";
                 Object[] params = {
                         null,
                         LocalDateTime.now(),

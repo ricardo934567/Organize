@@ -23,7 +23,6 @@ public class MetaCategoriaController {
         @ResponseStatus(HttpStatus.OK)
         @GetMapping
         public List<MetaCategoria> listar(){
-
                 return metaCategoriaRepository.findAll();
         }
 
@@ -32,7 +31,6 @@ public class MetaCategoriaController {
         public ResponseEntity<MetaCategoria> buscar(@PathVariable  long metaCategoriaId) {
                 Optional<MetaCategoria> c = metaCategoriaRepository.findById(metaCategoriaId);
                 return c.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-
         }
 
         @ResponseStatus(HttpStatus.CREATED)
@@ -44,7 +42,6 @@ public class MetaCategoriaController {
 
         @DeleteMapping("/{metaCategoriaId}")
         public ResponseEntity<MetaCategoria> remover(@PathVariable Long metaCategoriaId) {
-
                 try {
                         Optional<MetaCategoria> metaCategoria = metaCategoriaRepository.findById(metaCategoriaId);
                         if (metaCategoria.isPresent()) {
@@ -57,8 +54,6 @@ public class MetaCategoriaController {
                 } catch (DataIntegrityViolationException e) {
                         return ResponseEntity.status(HttpStatus.CONFLICT).build();
                 }
-
-
         }
 
         @PutMapping("/{metaCategoriaId}")

@@ -80,8 +80,8 @@ public class FaturaController {
         try {
             Map<String, Object> result = jdbcTemplate.queryForMap(sql1, params);
 
-            Long totalPago = (Long) result.get("vrTotal");
-            Long limite = (Long) result.get("limite");
+            Double totalPago = (Double) result.get("vrTotal");
+            Double limite = (Double) result.get("limite");
 
             valorRestante = limite - (totalPago + novoValor);
 
@@ -94,7 +94,7 @@ public class FaturaController {
             try {
             Map<String, Object> result = jdbcTemplate.queryForMap(sql2, params);
 
-            Long limite = (Long) result.get("limite");
+            Double limite = result.get("limite");
 
             valorRestante = limite - novoValor;
 

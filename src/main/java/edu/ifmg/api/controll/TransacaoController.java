@@ -36,7 +36,17 @@ public class TransacaoController {
 
         }
 
+        @ResponseStatus(HttpStatus.CREATED)
+        @PostMapping
+        public Transacao salvar(@RequestBody Transacao transacao) {
+                if (transacao.getId() == null) {
+                        // O campo ID é nulo, podemos ignorá-lo
+                        transacao.setId((long) -1);
 
+                }
+                return transacaoRepository.save(transacao);
+
+        }
 
 
         @DeleteMapping("/{transacaoId}")
@@ -63,6 +73,17 @@ public class TransacaoController {
                 Optional<Transacao> transacaoAtual = transacaoRepository.findById(transacaoId);
                 if(transacaoAtual.isPresent()) {
                         BeanUtils.copyProperties(transacao, transacaoAtual.get(),"id","dataPagamento","dataTransacao","dataVencimento","fatura");
+                        Transacao transacaoSalva =transacaoRepository.save(transacaoAtual.get());
+                        return ResponseEntity.ok(transacaoSalva);
+                }
+                return ResponseEntity.notFound().build();
+        }
+
+        @PutMapping("/atualizar-data-pagamento/{id}")
+        public ResponseEntity<Object> atualizarDataPagamento(@PathVariable Long id, @RequestBody Transacao transacao) {
+                Optional<Transacao> transacaoAtual = transacaoRepository.findById(id);
+                if(transacaoAtual.isPresent()) {
+                        BeanUtils.copyProperties(transacao, transacaoAtual.get(),"id","dataTransacao","valor","parcela","dataVencimento","fatura");
                         Transacao transacaoSalva =transacaoRepository.save(transacaoAtual.get());
                         return ResponseEntity.ok(transacaoSalva);
                 }

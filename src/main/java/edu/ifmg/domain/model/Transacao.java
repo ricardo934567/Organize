@@ -31,11 +31,11 @@ public class Transacao {
     private LocalDateTime dataTransacao;
 
     @UpdateTimestamp
-    @Column(nullable = true, columnDefinition = "datetime")
+    @Column(nullable = false, columnDefinition = "datetime default '1970-01-01 00:00:00'")
     private LocalDateTime dataPagamento;
 
     @CreationTimestamp
-    @Column(nullable = false, columnDefinition = "datetime")
+    @Column(nullable = false, columnDefinition = "datetime ")
     private LocalDateTime dataVencimento;
 
     @ManyToOne

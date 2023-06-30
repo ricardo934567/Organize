@@ -45,19 +45,15 @@ public class FaturaController {
     public Fatura salvar(@RequestBody Fatura fatura) {
 
         return faturaRepository.save(fatura);
-
-
-
-
     }
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     private Boolean verificarLimite(Long id_categoria, Double novoValor) {
-        Long valorRestante = (long) 0.00;
+        Double valorRestante = 0.00;
 
-        String sql =
+        String sql1 =
         "SELECT sum(vrTotal) AS vrTotal, limite                             "+
         "FROM (                                                             "+
         "  SELECT sum(f.valor_total) AS vrTotal, c.limite                   "+
@@ -76,21 +72,35 @@ public class FaturaController {
         ") v                                                                "+
         "GROUP BY limite                                                    ";
 
-
-                Object[] params = {
-                id_categoria,
-                id_categoria
+        Object[] params = {
+            id_categoria,
+            id_categoria
         };
 
         try {
-            Map<String, Object> result = jdbcTemplate.queryForMap(sql, params);
+            Map<String, Object> result = jdbcTemplate.queryForMap(sql1, params);
 
-            Long vrTot = (Long) result.get("vrTotal");
+            Long totalPago = (Long) result.get("vrTotal");
             Long limite = (Long) result.get("limite");
 
-            valorRestante = (long) (vrTot - limite - novoValor);
-        } catch (EmptyResultDataAccessException e) {
-            // Trate o caso de nenhum resultado encontrado, se necessário
+            valorRestante = limite - (totalPago + novoValor);
+
+        } catch (EmptyResultDataAccessException erroValorFaturado) {
+            // Trate o caso de nenhum resultado sobre valores faturados.
+
+            String sql2 =
+            "SELECT limite FROM  meta_categoria";
+
+            try {
+            Map<String, Object> result = jdbcTemplate.queryForMap(sql2, params);
+
+            Long limite = (Long) result.get("limite");
+
+            valorRestante = limite - novoValor;
+
+            } catch (EmptyResultDataAccessException erroValorLimite) {
+                // Trate o caso de nenhum resultado sobre o limite da categoria.
+            }
         }
 
         return valorRestante > 0;

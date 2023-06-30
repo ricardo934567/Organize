@@ -16,10 +16,10 @@ public class MetaCategoria {
     private Long id;
 
     @Column(nullable = false)
-    private Long limite;
+    private Double limite;
 
     @Column(nullable = false)
-    private Long controle;
+    private Boolean controle;
 
     @OneToOne
     @JoinColumn(name = "categoria_id", nullable = false)

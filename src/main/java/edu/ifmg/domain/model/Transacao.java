@@ -21,7 +21,7 @@ public class Transacao {
     private Long id;
 
     @Column(name = "valor",nullable = false)
-    private Long valor;
+    private Double valor;
 
     @Column(name = "parcela",nullable = false)
     private Long parcela;

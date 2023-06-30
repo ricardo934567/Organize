@@ -2,7 +2,7 @@ INSERT INTO categoria(nome) VALUES ("Supermercado");
 INSERT INTO categoria(nome) VALUES ("Farmácia");
 INSERT INTO categoria(nome) VALUES ("Academia");
 
-INSERT INTO meta_categoria(limite,controle,categoria_id) VALUES (2,1,1);
+INSERT INTO meta_categoria(limite,controle,categoria_id) VALUES (1000.0,1,1);
 
 INSERT INTO fatura(faturado,parcelas,valor_total,categoria_id) VALUES (true,3,250.00,1);
 

@@ -121,7 +121,7 @@ public class FaturaController {
             List<Transacao> transacoes = new ArrayList<>();
             for (int i = 1; i <= fatura.getParcelas(); i++) {
                 Transacao transacao = new Transacao();
-                transacao.setValor((long) (fatura.getValorTotal() / fatura.getParcelas()));
+                transacao.setValor( (fatura.getValorTotal() / fatura.getParcelas()));
                 transacao.setParcela((long) i);
                 transacao.setFatura(faturaSalva);
                 transacoes.add(transacao);

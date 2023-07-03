@@ -12,11 +12,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/faturas")
@@ -113,7 +115,7 @@ public class FaturaController {
         Long idCategoria = fatura.getCategoria().getId();
         Double vrTotal = fatura.getValorTotal();
 
-        if (verificarLimite(idCategoria, vrTotal).equals(true)) {
+        //if (verificarLimite(idCategoria, vrTotal).equals(true)) {
             // Salva a fatura
             Fatura faturaSalva = faturaRepository.save(fatura);
 
@@ -142,9 +144,9 @@ public class FaturaController {
             }
 
             return faturaSalva;
-        } else {
+       /* } else {
             return null;
-        }
+        } */
     }
 
     @DeleteMapping("/{fatura_Id}")
@@ -173,4 +175,79 @@ public class FaturaController {
         }
         return ResponseEntity.notFound().build();
     }
+
+    @GetMapping("/emaberto")
+    public List<Fatura> getFaturasEmAberto() {
+        List<Fatura> faturas = faturaRepository.findAll();
+        List<Fatura> faturasEmAberto = new ArrayList<>();
+
+        for (Fatura fatura : faturas) {
+            List<Transacao> transacoes = fatura.getTransacoes();
+            long parcelasPagas = transacoes.stream()
+                    .filter(transacao -> !transacao.getDataPagamento().equals(LocalDateTime.of(1969, 12, 31, 21, 0)))
+                    .count();
+
+            if (parcelasPagas < fatura.getParcelas()) {
+                faturasEmAberto.add(fatura);
+            }
+        }
+
+        return faturasEmAberto;
+    }
+
+
+    @GetMapping("/vencidas")
+    public List<Fatura> getFaturasVencidas() {
+        List<Fatura> faturasVencidas = new ArrayList<>();
+
+        List<Fatura> faturasAbertas = faturaRepository.findAll();
+
+        LocalDate dataAtual = LocalDate.now();
+
+        for (Fatura fatura : faturasAbertas) {
+            List<Transacao> transacoes = fatura.getTransacoes();
+
+            boolean vencida = false;
+            for (Transacao transacao : transacoes) {
+                LocalDate dataVencimento = LocalDate.from(transacao.getDataVencimento());
+
+                if (dataVencimento != null && dataAtual.isAfter(dataVencimento)) {
+                    vencida = true;
+                    break;
+                }
+            }
+
+            if (vencida) {
+                faturasVencidas.add(fatura);
+            }
+        }
+
+        return faturasVencidas;
+    }
+
+
+    @GetMapping("/fechadas")
+    public List<Fatura> getFaturasFechadas() {
+        List<Fatura> faturasFechadas = new ArrayList<>();
+
+        List<Fatura> faturasAbertas = faturaRepository.findAll();
+
+        for (Fatura fatura : faturasAbertas) {
+            List<Transacao> transacoes = fatura.getTransacoes();
+
+            boolean todasParcelasPagas = transacoes.stream()
+                    .allMatch(transacao -> !transacao.getDataPagamento().equals(LocalDateTime.of(1969, 12, 31, 21, 0)));
+
+            if (todasParcelasPagas) {
+                faturasFechadas.add(fatura);
+            }
+        }
+
+        return faturasFechadas;
+    }
+
+
+
+
+
 }

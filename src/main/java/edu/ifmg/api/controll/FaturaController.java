@@ -125,11 +125,11 @@ public class FaturaController {
         return ResponseEntity.notFound().build();
     }
 
-    private void verificarFaturaPaga(Long id_transasao) {
-        String sql1 = "SELECT id FROM transacao WHERE data_pagamento = '1970-01-01 00:00:00' and id = " + id_transasao;
+    private void verificarFaturaPaga(Long id_fatura) {
+        String sql1 = "SELECT fatura_id FROM transacao WHERE data_pagamento = '1970-01-01 00:00:00' and fatura_id = " + id_fatura;
 
         Object[] params = {
-                id_transasao
+                id_fatura
         };
 
         try {
@@ -138,8 +138,8 @@ public class FaturaController {
         } catch (EmptyResultDataAccessException erroFaturaPaga) {
             // Trate o caso de nenhum resultado sobre data de pagamento vazio da fatura.
 
-            String sql2 = "UPDATE fatura SET faturado = true WHERE fatura_id = " + id_transasao;
-            jdbcTemplate.update(sql2, id_transasao);
+            String sql2 = "UPDATE fatura SET faturado = true WHERE fatura_id = " + id_fatura;
+            jdbcTemplate.update(sql2, id_fatura);
         }
     }
 

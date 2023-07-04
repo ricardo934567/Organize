@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/faturas")
@@ -26,6 +25,9 @@ public class FaturaController {
 
     @Autowired
     private FaturaRepository faturaRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @ResponseStatus(HttpStatus.OK)
     @GetMapping
@@ -49,73 +51,15 @@ public class FaturaController {
         return faturaRepository.save(fatura);
     }
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    private Boolean verificarLimite(Long id_categoria, Double novoValor) {
-        Double valorRestante = 0.00;
-
-        String sql1 =
-        "SELECT sum(vrTotal) AS vrTotal, limite                             "+
-        "FROM (                                                             "+
-        "  SELECT sum(f.valor_total) AS vrTotal, c.limite                   "+
-        "  FROM fatura f                                                    "+
-        "  INNER JOIN meta_categoria c ON c.categoria_id = f.categoria_id   "+
-        "  WHERE f.faturado = True AND f.categoria_id = ?                   "+
-        "  GROUP BY limite                                                  "+
-        "  UNION                                                            "+
-        "  SELECT sum(t.valor) AS vrTotal, c.limite                         "+
-        "  FROM fatura f                                                    "+
-        "  INNER JOIN meta_categoria c ON c.categoria_id = f.categoria_id   "+
-        "  INNER JOIN transacao t ON t.fatura_id = f.fatura_id              "+
-        "  WHERE f.faturado = False AND data_pagamento <> null AND          " +
-        "        f.categoria_id = ?                                         "+
-        "  GROUP BY limite                                                  "+
-        ") v                                                                "+
-        "GROUP BY limite                                                    ";
-
-        Object[] params = {
-            id_categoria,
-            id_categoria
-        };
-
-        try {
-            Map<String, Object> result = jdbcTemplate.queryForMap(sql1, params);
-
-            Double totalPago = (Double) result.get("vrTotal");
-            Double limite = (Double) result.get("limite");
-
-            valorRestante = (Double) (limite - (totalPago + novoValor));
-
-        } catch (EmptyResultDataAccessException erroValorFaturado) {
-            // Trate o caso de nenhum resultado sobre valores faturados.
-
-            String sql2 =
-            "SELECT limite FROM  meta_categoria";
-
-            try {
-            Map<String, Object> result = jdbcTemplate.queryForMap(sql2, params);
-
-            Double limite = (Double) result.get("limite");
-
-            valorRestante = (Double) (limite - novoValor);
-
-            } catch (EmptyResultDataAccessException erroValorLimite) {
-                // Trate o caso de nenhum resultado sobre o limite da categoria.
-            }
-        }
-
-        return valorRestante > 0;
-    }
-
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/insert")
     public Fatura salvarTeste(@RequestBody Fatura fatura) {
 
+        Long idFatura = fatura.getId();
         Long idCategoria = fatura.getCategoria().getId();
         Double vrTotal = fatura.getValorTotal();
 
-        //if (verificarLimite(idCategoria, vrTotal).equals(true)) {
+        if (verificarLimite(idCategoria, vrTotal).equals(true)) {
             // Salva a fatura
             Fatura faturaSalva = faturaRepository.save(fatura);
 
@@ -143,10 +87,13 @@ public class FaturaController {
                 jdbcTemplate.update(sql, params);
             }
 
+            verificarFaturaPaga(idFatura);
+
             return faturaSalva;
-       /* } else {
+
+        } else {
             return null;
-        } */
+        }
     }
 
     @DeleteMapping("/{fatura_Id}")
@@ -171,9 +118,85 @@ public class FaturaController {
         if(faturaAtual.isPresent()) {
             BeanUtils.copyProperties(fatura, faturaAtual.get(),"id");
             Fatura faturaSalva = faturaRepository.save(faturaAtual.get());
+
             return ResponseEntity.ok(faturaSalva);
         }
+
         return ResponseEntity.notFound().build();
+    }
+
+    private void verificarFaturaPaga(Long id_transasao) {
+        String sql1 = "SELECT id FROM transacao WHERE data_pagamento = '1970-01-01 00:00:00' and id = " + id_transasao;
+
+        Object[] params = {
+                id_transasao
+        };
+
+        try {
+            Map<String, Object> result = jdbcTemplate.queryForMap(sql1, params);
+
+        } catch (EmptyResultDataAccessException erroFaturaPaga) {
+            // Trate o caso de nenhum resultado sobre data de pagamento vazio da fatura.
+
+            String sql2 = "UPDATE fatura SET faturado = true WHERE fatura_id = " + id_transasao;
+            jdbcTemplate.update(sql2, id_transasao);
+        }
+    }
+
+    private Boolean verificarLimite(Long id_categoria, Double novoValor) {
+        Double valorRestante = 0.00;
+
+        String sql1 =
+                "SELECT sum(vrTotal) AS vrTotal, limite                                     "+
+                        "FROM (                                                             "+
+                        "  SELECT sum(f.valor_total) AS vrTotal, c.limite                   "+
+                        "  FROM fatura f                                                    "+
+                        "  INNER JOIN meta_categoria c ON c.categoria_id = f.categoria_id   "+
+                        "  WHERE f.faturado = True AND f.categoria_id = ?                   "+
+                        "  GROUP BY limite                                                  "+
+                        "  UNION                                                            "+
+                        "  SELECT sum(t.valor) AS vrTotal, c.limite                         "+
+                        "  FROM fatura f                                                    "+
+                        "  INNER JOIN meta_categoria c ON c.categoria_id = f.categoria_id   "+
+                        "  INNER JOIN transacao t ON t.fatura_id = f.fatura_id              "+
+                        "  WHERE f.faturado = False AND data_pagamento <> null AND          "+
+                        "        f.categoria_id = ?                                         "+
+                        "  GROUP BY limite                                                  "+
+                        ") v                                                                "+
+                        "GROUP BY limite                                                    ";
+
+        Object[] params = {
+                id_categoria,
+                id_categoria
+        };
+
+        try {
+            Map<String, Object> result = jdbcTemplate.queryForMap(sql1, params);
+
+            Double totalPago = (Double) result.get("vrTotal");
+            Double limite = (Double) result.get("limite");
+
+            valorRestante = (Double) (limite - (totalPago + novoValor));
+
+        } catch (EmptyResultDataAccessException erroValorFaturado) {
+            // Trate o caso de nenhum resultado sobre valores faturados.
+
+            String sql2 =
+                    "SELECT limite FROM  meta_categoria";
+
+            try {
+                Map<String, Object> result = jdbcTemplate.queryForMap(sql2, params);
+
+                Double limite = (Double) result.get("limite");
+
+                valorRestante = (Double) (limite - novoValor);
+
+            } catch (EmptyResultDataAccessException erroValorLimite) {
+                // Trate o caso de nenhum resultado sobre o limite da categoria.
+            }
+        }
+
+        return valorRestante > 0;
     }
 
     @GetMapping("/emaberto")
@@ -194,7 +217,6 @@ public class FaturaController {
 
         return faturasEmAberto;
     }
-
 
     @GetMapping("/vencidas")
     public List<Fatura> getFaturasVencidas() {
@@ -225,7 +247,6 @@ public class FaturaController {
         return faturasVencidas;
     }
 
-
     @GetMapping("/fechadas")
     public List<Fatura> getFaturasFechadas() {
         List<Fatura> faturasFechadas = new ArrayList<>();
@@ -245,9 +266,4 @@ public class FaturaController {
 
         return faturasFechadas;
     }
-
-
-
-
-
 }

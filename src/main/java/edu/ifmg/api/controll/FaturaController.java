@@ -58,7 +58,7 @@ public class FaturaController {
         Long idCategoria = fatura.getCategoria().getId();
         Double vrTotal = fatura.getValorTotal();
 
-        if (verificarLimite(idCategoria, vrTotal).equals(true)) {
+       if (verificarLimite(idCategoria, vrTotal).equals(true)) {
             // Salva a fatura
             Fatura faturaSalva = faturaRepository.save(fatura);
 
@@ -162,9 +162,12 @@ public class FaturaController {
 
             String sql2 =
                     "SELECT limite FROM  meta_categoria";
+            Object[] param2 = {
+
+            };
 
             try {
-                Map<String, Object> result = jdbcTemplate.queryForMap(sql2, params);
+                Map<String, Object> result = jdbcTemplate.queryForMap(sql2, param2);
 
                 Double limite = (Double) result.get("limite");
 

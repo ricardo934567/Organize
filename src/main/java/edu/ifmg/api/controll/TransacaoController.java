@@ -80,6 +80,7 @@ public class TransacaoController {
                 if(transacaoAtual.isPresent()) {
                         BeanUtils.copyProperties(transacao, transacaoAtual.get(),"id","dataPagamento","dataTransacao","dataVencimento","fatura");
                         Transacao transacaoSalva =transacaoRepository.save(transacaoAtual.get());
+                        
                         return ResponseEntity.ok(transacaoSalva);
                 }
                 return ResponseEntity.notFound().build();
@@ -88,12 +89,14 @@ public class TransacaoController {
         @PutMapping("/atualizar-data-pagamento/{id}")
         public ResponseEntity<Object> atualizarDataPagamento(@PathVariable Long id, @RequestBody Transacao transacao) {
 
-                Long idFatura = transacao.getFatura().getId();
+
 
                 Optional<Transacao> transacaoAtual = transacaoRepository.findById(id);
                 if(transacaoAtual.isPresent()) {
                         BeanUtils.copyProperties(transacao, transacaoAtual.get(),"id","dataTransacao","valor","parcela","dataVencimento","fatura");
+                        Long idFatura = transacaoAtual.get().getFatura().getId();
                         Transacao transacaoSalva =transacaoRepository.save(transacaoAtual.get());
+
 
                         verificarFaturaPaga(idFatura);
 
@@ -103,7 +106,7 @@ public class TransacaoController {
         }
 
         private void verificarFaturaPaga(Long id_fatura) {
-                String sql1 = "SELECT fatura_id FROM transacao WHERE data_pagamento = '1970-01-01 00:00:00' and fatura_id = " + id_fatura;
+                String sql1 = "SELECT fatura_id FROM transacao WHERE data_pagamento = '1970-01-01 00:00:00' and fatura_id = ?" ;
 
                 Object[] params = {
                         id_fatura
@@ -115,7 +118,7 @@ public class TransacaoController {
                 } catch (EmptyResultDataAccessException erroFaturaPaga) {
                         // Trate o caso de nenhum resultado sobre data de pagamento vazio da fatura.
 
-                        String sql2 = "UPDATE fatura SET faturado = true WHERE fatura_id = " + id_fatura;
+                        String sql2 = "UPDATE fatura SET faturado = true WHERE fatura_id = ? ";
                         jdbcTemplate.update(sql2, id_fatura);
                 }
         }

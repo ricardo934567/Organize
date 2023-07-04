@@ -7,11 +7,14 @@ import edu.ifmg.domain.repository.TransacaoRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -20,6 +23,9 @@ public class TransacaoController {
 
         @Autowired
         private TransacaoRepository transacaoRepository;
+
+        @Autowired
+        private JdbcTemplate jdbcTemplate;
 
         @ResponseStatus(HttpStatus.OK)
         @GetMapping
@@ -81,13 +87,37 @@ public class TransacaoController {
 
         @PutMapping("/atualizar-data-pagamento/{id}")
         public ResponseEntity<Object> atualizarDataPagamento(@PathVariable Long id, @RequestBody Transacao transacao) {
+
+                Long idFatura = transacao.getFatura().getId();
+
                 Optional<Transacao> transacaoAtual = transacaoRepository.findById(id);
                 if(transacaoAtual.isPresent()) {
                         BeanUtils.copyProperties(transacao, transacaoAtual.get(),"id","dataTransacao","valor","parcela","dataVencimento","fatura");
                         Transacao transacaoSalva =transacaoRepository.save(transacaoAtual.get());
+
+                        verificarFaturaPaga(idFatura);
+
                         return ResponseEntity.ok(transacaoSalva);
                 }
                 return ResponseEntity.notFound().build();
+        }
+
+        private void verificarFaturaPaga(Long id_fatura) {
+                String sql1 = "SELECT fatura_id FROM transacao WHERE data_pagamento = '1970-01-01 00:00:00' and fatura_id = " + id_fatura;
+
+                Object[] params = {
+                        id_fatura
+                };
+
+                try {
+                        Map<String, Object> result = jdbcTemplate.queryForMap(sql1, params);
+
+                } catch (EmptyResultDataAccessException erroFaturaPaga) {
+                        // Trate o caso de nenhum resultado sobre data de pagamento vazio da fatura.
+
+                        String sql2 = "UPDATE fatura SET faturado = true WHERE fatura_id = " + id_fatura;
+                        jdbcTemplate.update(sql2, id_fatura);
+                }
         }
 
 

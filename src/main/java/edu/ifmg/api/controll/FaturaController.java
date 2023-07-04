@@ -55,7 +55,6 @@ public class FaturaController {
     @PostMapping("/insert")
     public Fatura salvarTeste(@RequestBody Fatura fatura) {
 
-        Long idFatura = fatura.getId();
         Long idCategoria = fatura.getCategoria().getId();
         Double vrTotal = fatura.getValorTotal();
 
@@ -86,8 +85,6 @@ public class FaturaController {
                 };
                 jdbcTemplate.update(sql, params);
             }
-
-            verificarFaturaPaga(idFatura);
 
             return faturaSalva;
 
@@ -123,24 +120,6 @@ public class FaturaController {
         }
 
         return ResponseEntity.notFound().build();
-    }
-
-    private void verificarFaturaPaga(Long id_fatura) {
-        String sql1 = "SELECT fatura_id FROM transacao WHERE data_pagamento = '1970-01-01 00:00:00' and fatura_id = " + id_fatura;
-
-        Object[] params = {
-                id_fatura
-        };
-
-        try {
-            Map<String, Object> result = jdbcTemplate.queryForMap(sql1, params);
-
-        } catch (EmptyResultDataAccessException erroFaturaPaga) {
-            // Trate o caso de nenhum resultado sobre data de pagamento vazio da fatura.
-
-            String sql2 = "UPDATE fatura SET faturado = true WHERE fatura_id = " + id_fatura;
-            jdbcTemplate.update(sql2, id_fatura);
-        }
     }
 
     private Boolean verificarLimite(Long id_categoria, Double novoValor) {
